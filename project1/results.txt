@@ -1,0 +1,298 @@
+Namespace(plco_data_path='plco/lung_prsn.csv', learning_rate=0.0001, regularization_lambda=0, batch_size=64, num_epochs=10, results_path='results.json', verbose=False)
+Loading data from plco/lung_prsn.csv
+Generating all feature combinations...
+Total combinations to try: 8388607
+Starting parallel processing with 16 workers...
+[1/8388607] Config: {'numerical': [], 'categorical': ['ph_lung_trial']}
+  Train AUC: 0.5000, Val AUC: 0.5000
+Current Best Val AUC: -1.0000
+Current Best Config: None
+  *** New best Val AUC: 0.5000 ***
+[2/8388607] Config: {'numerical': [], 'categorical': ['ph_any_trial']}
+  Train AUC: 0.5122, Val AUC: 0.5042
+Current Best Val AUC: 0.5000
+Current Best Config: {'numerical': [], 'categorical': ['ph_lung_trial']}
+  *** New best Val AUC: 0.5042 ***
+[3/8388607] Config: {'numerical': [], 'categorical': ['sex']}
+  Train AUC: 0.4385, Val AUC: 0.4507
+Current Best Val AUC: 0.5042
+Current Best Config: {'numerical': [], 'categorical': ['ph_any_trial']}
+[4/8388607] Config: {'numerical': [], 'categorical': ['race7']}
+  Train AUC: 0.5003, Val AUC: 0.5029
+Current Best Val AUC: 0.5042
+Current Best Config: {'numerical': [], 'categorical': ['ph_any_trial']}
+[5/8388607] Config: {'numerical': [], 'categorical': ['hispanic_f']}
+  Train AUC: 0.4939, Val AUC: 0.4952
+Current Best Val AUC: 0.5042
+Current Best Config: {'numerical': [], 'categorical': ['ph_any_trial']}
+[6/8388607] Config: {'numerical': [], 'categorical': ['educat']}
+  Train AUC: 0.5402, Val AUC: 0.5585
+Current Best Val AUC: 0.5042
+Current Best Config: {'numerical': [], 'categorical': ['ph_any_trial']}
+  *** New best Val AUC: 0.5585 ***
+[7/8388607] Config: {'numerical': [], 'categorical': ['marital']}
+  Train AUC: 0.5240, Val AUC: 0.5359
+Current Best Val AUC: 0.5585
+Current Best Config: {'numerical': [], 'categorical': ['educat']}
+[8/8388607] Config: {'numerical': [], 'categorical': ['occupat']}
+  Train AUC: 0.4673, Val AUC: 0.4498
+Current Best Val AUC: 0.5585
+Current Best Config: {'numerical': [], 'categorical': ['educat']}
+[9/8388607] Config: {'numerical': [], 'categorical': ['cig_stat']}
+  Train AUC: 0.7515, Val AUC: 0.7736
+Current Best Val AUC: 0.5585
+Current Best Config: {'numerical': [], 'categorical': ['educat']}
+  *** New best Val AUC: 0.7736 ***
+[10/8388607] Config: {'numerical': [], 'categorical': ['cig_years']}
+  Train AUC: 0.6772, Val AUC: 0.6913
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[11/8388607] Config: {'numerical': [], 'categorical': ['smoked_f']}
+  Train AUC: 0.6929, Val AUC: 0.7064
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[13/8388607] Config: {'numerical': [], 'categorical': ['cigpd_f']}
+  Train AUC: 0.6507, Val AUC: 0.6660
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[12/8388607] Config: {'numerical': [], 'categorical': ['pack_years']}
+  Train AUC: 0.6562, Val AUC: 0.6584
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[14/8388607] Config: {'numerical': [], 'categorical': ['fh_cancer']}
+  Train AUC: 0.5237, Val AUC: 0.5309
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[15/8388607] Config: {'numerical': [], 'categorical': ['lung_fh']}
+  Train AUC: 0.5385, Val AUC: 0.5583
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[16/8388607] Config: {'numerical': [], 'categorical': ['cigar']}
+  Train AUC: 0.5132, Val AUC: 0.5117
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[17/8388607] Config: {'numerical': [], 'categorical': ['ph_lung_trial', 'ph_any_trial']}
+  Train AUC: 0.5116, Val AUC: 0.5042
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[18/8388607] Config: {'numerical': [], 'categorical': ['ph_lung_trial', 'sex']}
+  Train AUC: 0.5615, Val AUC: 0.5494
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[19/8388607] Config: {'numerical': [], 'categorical': ['ph_lung_trial', 'race7']}
+  Train AUC: 0.4975, Val AUC: 0.4987
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[20/8388607] Config: {'numerical': [], 'categorical': ['ph_lung_trial', 'hispanic_f']}
+  Train AUC: 0.5012, Val AUC: 0.5031
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[21/8388607] Config: {'numerical': [], 'categorical': ['ph_lung_trial', 'educat']}
+  Train AUC: 0.5079, Val AUC: 0.5014
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[22/8388607] Config: {'numerical': [], 'categorical': ['ph_lung_trial', 'marital']}
+  Train AUC: 0.4943, Val AUC: 0.4807
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[23/8388607] Config: {'numerical': [], 'categorical': ['ph_lung_trial', 'occupat']}
+  Train AUC: 0.5647, Val AUC: 0.5788
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[24/8388607] Config: {'numerical': [], 'categorical': ['ph_lung_trial', 'cig_stat']}
+  Train AUC: 0.2613, Val AUC: 0.2403
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[25/8388607] Config: {'numerical': [], 'categorical': ['ph_lung_trial', 'cig_years']}
+  Train AUC: 0.5611, Val AUC: 0.5822
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[26/8388607] Config: {'numerical': [], 'categorical': ['ph_lung_trial', 'smoked_f']}
+  Train AUC: 0.6929, Val AUC: 0.7063
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[28/8388607] Config: {'numerical': [], 'categorical': ['ph_lung_trial', 'cigpd_f']}
+  Train AUC: 0.6983, Val AUC: 0.7159
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[27/8388607] Config: {'numerical': [], 'categorical': ['ph_lung_trial', 'pack_years']}
+  Train AUC: 0.6537, Val AUC: 0.6859
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[29/8388607] Config: {'numerical': [], 'categorical': ['ph_lung_trial', 'fh_cancer']}
+  Train AUC: 0.4792, Val AUC: 0.4734
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[30/8388607] Config: {'numerical': [], 'categorical': ['ph_lung_trial', 'lung_fh']}
+  Train AUC: 0.5366, Val AUC: 0.5588
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[31/8388607] Config: {'numerical': [], 'categorical': ['ph_lung_trial', 'cigar']}
+  Train AUC: 0.4975, Val AUC: 0.4938
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[32/8388607] Config: {'numerical': [], 'categorical': ['ph_any_trial', 'sex']}
+  Train AUC: 0.4321, Val AUC: 0.4489
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[33/8388607] Config: {'numerical': [], 'categorical': ['ph_any_trial', 'race7']}
+  Train AUC: 0.5117, Val AUC: 0.4995
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[34/8388607] Config: {'numerical': [], 'categorical': ['ph_any_trial', 'hispanic_f']}
+  Train AUC: 0.5158, Val AUC: 0.5069
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[35/8388607] Config: {'numerical': [], 'categorical': ['ph_any_trial', 'educat']}
+  Train AUC: 0.4686, Val AUC: 0.4475
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[36/8388607] Config: {'numerical': [], 'categorical': ['ph_any_trial', 'marital']}
+  Train AUC: 0.4742, Val AUC: 0.4743
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[37/8388607] Config: {'numerical': [], 'categorical': ['ph_any_trial', 'occupat']}
+  Train AUC: 0.4482, Val AUC: 0.4448
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[38/8388607] Config: {'numerical': [], 'categorical': ['ph_any_trial', 'cig_stat']}
+  Train AUC: 0.5369, Val AUC: 0.5612
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+Categorical vectorizer: unique_vals=['0' '1' '9']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['0' '1' '2']
+Categorical vectorizer: unique_vals=['0' '1' '9']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['1' '2']
+Categorical vectorizer: unique_vals=['0' '1' '9']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['0' '0.25' '0.5' '0.75' '1' '1.5' '10' '10.5' '100' '102' '104' '105'
+ '106' '108' '11' '11.5' '110' '111' '112' '114' '115' '116' '117' '118'
+ '12' '12.5' '120' '122' '123' '124' '125' '126' '128' '129' '13' '13.5'
+ '130' '132' '135' '136' '138' '14' '14.5' '140' '141' '144' '145' '147'
+ '148' '15' '15.5' '150' '152' '153' '155' '156' '159' '16' '16.5' '160'
+ '162' '164' '165' '168' '17' '17.5' '170' '172' '174' '175' '176' '177'
+ '18' '18.5' '180' '183' '184' '185' '188' '19' '19.5' '190' '192' '195'
+ '196' '2' '2.5' '20' '20.5' '200' '204' '208' '21' '21.5' '210' '215'
+ '216' '22' '22.5' '220' '225' '23' '23.5' '230' '235' '24' '24.5' '245'
+ '25' '25.5' '255' '26' '26.5' '260' '27' '27.5' '270' '28' '28.5' '29'
+ '29.5' '3' '3.5' '30' '31' '31.5' '32' '33' '34' '34.5' '35' '36' '37'
+ '37.5' '38' '39' '4' '4.5' '40' '40.5' '41' '42' '43' '43.5' '44' '45'
+ '46' '46.5' '47' '48' '49' '49.5' '5' '5.5' '50' '51' '52' '52.5' '53'
+ '54' '55' '55.5' '56' '57' '58' '58.5' '59' '6' '6.5' '60' '61' '61.5'
+ '62' '63' '64' '64.5' '65' '66' '67.5' '68' '69' '7' '7.5' '70' '70.5'
+ '72' '73.5' '74' '75' '76' '76.5' '78' '79.5' '8' '8.5' '80' '81' '82'
+ '82.5' '84' '85' '85.5' '86' '87' '88' '88.5' '9' '9.5' '90' '92' '93'
+ '94' '94.5' '95' '96' '98' '99']
+Categorical vectorizer: unique_vals=['1' '2' '3' '4' '5' '6' '7']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['0' '1' '9']
+Categorical vectorizer: unique_vals=['1' '2' '3' '4' '5']
+Categorical vectorizer: unique_vals=['0' '1' '2']
+Categorical vectorizer: unique_vals=['0' '1' '9']
+Categorical vectorizer: unique_vals=['1' '2']
+Categorical vectorizer: unique_vals=['1' '2' '3' '4' '5' '6' '7']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['0' '1' '2']
+Categorical vectorizer: unique_vals=['0' '1' '9']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['1' '2' '3' '4' '5' '6' '7']
+Categorical vectorizer: unique_vals=['0' '1' '9']
+Categorical vectorizer: unique_vals=['1' '2' '3' '4' '5' '6' '7']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['0' '1' '9']
+Categorical vectorizer: unique_vals=['0' '1' '9']
+Categorical vectorizer: unique_vals=['1' '2' '3' '4' '5' '6' '7']
+Categorical vectorizer: unique_vals=['1' '2' '3' '4' '5' '6' '7']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['1' '2' '3' '4' '5']
+Categorical vectorizer: unique_vals=['0' '1' '9']
+Categorical vectorizer: unique_vals=['0' '1' '2']
+Categorical vectorizer: unique_vals=['0' '1' '2' '3' '4' '5' '6' '7']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['0' '1' '2' '3' '4' '5' '6' '7']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['0' '1' '9']
+Categorical vectorizer: unique_vals=['0' '0.25' '0.5' '0.75' '1' '1.5' '10' '10.5' '100' '102' '104' '105'
+ '106' '108' '11' '11.5' '110' '111' '112' '114' '115' '116' '117' '118'
+ '12' '12.5' '120' '122' '123' '124' '125' '126' '128' '129' '13' '13.5'
+ '130' '132' '135' '136' '138' '14' '14.5' '140' '141' '144' '145' '147'
+ '148' '15' '15.5' '150' '152' '153' '155' '156' '159' '16' '16.5' '160'
+ '162' '164' '165' '168' '17' '17.5' '170' '172' '174' '175' '176' '177'
+ '18' '18.5' '180' '183' '184' '185' '188' '19' '19.5' '190' '192' '195'
+ '196' '2' '2.5' '20' '20.5' '200' '204' '208' '21' '21.5' '210' '215'
+ '216' '22' '22.5' '220' '225' '23' '23.5' '230' '235' '24' '24.5' '245'
+ '25' '25.5' '255' '26' '26.5' '260' '27' '27.5' '270' '28' '28.5' '29'
+ '29.5' '3' '3.5' '30' '31' '31.5' '32' '33' '34' '34.5' '35' '36' '37'
+ '37.5' '38' '39' '4' '4.5' '40' '40.5' '41' '42' '43' '43.5' '44' '45'
+ '46' '46.5' '47' '48' '49' '49.5' '5' '5.5' '50' '51' '52' '52.5' '53'
+ '54' '55' '55.5' '56' '57' '58' '58.5' '59' '6' '6.5' '60' '61' '61.5'
+ '62' '63' '64' '64.5' '65' '66' '67.5' '68' '69' '7' '7.5' '70' '70.5'
+ '72' '73.5' '74' '75' '76' '76.5' '78' '79.5' '8' '8.5' '80' '81' '82'
+ '82.5' '84' '85' '85.5' '86' '87' '88' '88.5' '9' '9.5' '90' '92' '93'
+ '94' '94.5' '95' '96' '98' '99']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['1' '2']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['1' '2' '3' '4' '5' '6' '7']
+Categorical vectorizer: unique_vals=['0' '1' '9']
+Categorical vectorizer: unique_vals=['1' '2' '3' '4' '5' '6' '7']
+Categorical vectorizer: unique_vals=['1' '2' '3' '4' '5']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['1' '2' '3' '4' '5' '6' '7']
+Categorical vectorizer: unique_vals=['0' '1' '9']
+Categorical vectorizer: unique_vals=['0' '0.5' '1' '10' '11' '12' '13' '14' '15' '16' '17' '18' '19' '2' '20'
+ '21' '22' '23' '24' '25' '26' '27' '28' '29' '3' '30' '31' '32' '33' '34'
+ '35' '36' '37' '38' '39' '4' '40' '41' '42' '43' '44' '45' '46' '47' '48'
+ '49' '5' '50' '51' '52' '53' '54' '55' '56' '57' '58' '59' '6' '60' '61'
+ '62' '63' '64' '7' '8' '9']
+Categorical vectorizer: unique_vals=['0' '1' '2']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['0' '0.5' '1' '10' '11' '12' '13' '14' '15' '16' '17' '18' '19' '2' '20'
+ '21' '22' '23' '24' '25' '26' '27' '28' '29' '3' '30' '31' '32' '33' '34'
+ '35' '36' '37' '38' '39' '4' '40' '41' '42' '43' '44' '45' '46' '47' '48'
+ '49' '5' '50' '51' '52' '53' '54' '55' '56' '57' '58' '59' '6' '60' '61'
+ '62' '63' '64' '7' '8' '9']
+Categorical vectorizer: unique_vals=['0' '1' '9']
+Categorical vectorizer: unique_vals=['0' '0.25' '0.5' '0.75' '1' '1.5' '10' '10.5' '100' '102' '104' '105'
+ '106' '108' '11' '11.5' '110' '111' '112' '114' '115' '116' '117' '118'
+ '12' '12.5' '120' '122' '123' '124' '125' '126' '128' '129' '13' '13.5'
+ '130' '132' '135' '136' '138' '14' '14.5' '140' '141' '144' '145' '147'
+ '148' '15' '15.5' '150' '152' '153' '155' '156' '159' '16' '16.5' '160'
+ '162' '164' '165' '168' '17' '17.5' '170' '172' '174' '175' '176' '177'
+ '18' '18.5' '180' '183' '184' '185' '188' '19' '19.5' '190' '192' '195'
+ '196' '2' '2.5' '20' '20.5' '200' '204' '208' '21' '21.5' '210' '215'
+ '216' '22' '22.5' '220' '225' '23' '23.5' '230' '235' '24' '24.5' '245'
+ '25' '25.5' '255' '26' '26.5' '260' '27' '27.5' '270' '28' '28.5' '29'
+ '29.5' '3' '3.5' '30' '31' '31.5' '32' '33' '34' '34.5' '35' '36' '37'
+ '37.5' '38' '39' '4' '4.5' '40' '40.5' '41' '42' '43' '43.5' '44' '45'
+ '46' '46.5' '47' '48' '49' '49.5' '5' '5.5' '50' '51' '52' '52.5' '53'
+ '54' '55' '55.5' '56' '57' '58' '58.5' '59' '6' '6.5' '60' '61' '61.5'
+ '62' '63' '64' '64.5' '65' '66' '67.5' '68' '69' '7' '7.5' '70' '70.5'
+ '72' '73.5' '74' '75' '76' '76.5' '78' '79.5' '8' '8.5' '80' '81' '82'
+ '82.5' '84' '85' '85.5' '86' '87' '88' '88.5' '9' '9.5' '90' '92' '93'
+ '94' '94.5' '95' '96' '98' '99']
+Categorical vectorizer: unique_vals=['0' '0.5' '1' '10' '11' '12' '13' '14' '15' '16' '17' '18' '19' '2' '20'
+ '21' '22' '23' '24' '25' '26' '27' '28' '29' '3' '30' '31' '32' '33' '34'
+ '35' '36' '37' '38' '39' '4' '40' '41' '42' '43' '44' '45' '46' '47' '48'
+ '49' '5' '50' '51' '52' '53' '54' '55' '56' '57' '58' '59' '6' '60' '61'
+ '62' '63' '64' '7' '8' '9']
+Categorical vectorizer: unique_vals=['0' '1']
+Categorical vectorizer: unique_vals=['0' '1']
+[39/8388607] Config: {'numerical': [], 'categorical': ['ph_any_trial', 'cig_years']}
+  Train AUC: 0.6418, Val AUC: 0.6561
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}
+[40/8388607] Config: {'numerical': [], 'categorical': ['ph_any_trial', 'smoked_f']}
+  Train AUC: 0.6519, Val AUC: 0.6738
+Current Best Val AUC: 0.7736
+Current Best Config: {'numerical': [], 'categorical': ['cig_stat']}

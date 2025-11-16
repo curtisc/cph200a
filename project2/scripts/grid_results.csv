@@ -1,0 +1,5 @@
+model_name,pathmnist.batch_size,trainer.max_epochs
+mlp,512,50
+mlp,512,100
+mlp,1024,100
+mlp,1024,50

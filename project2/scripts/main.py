@@ -7,6 +7,7 @@ from os.path import dirname, realpath
 sys.path.append(dirname(dirname(realpath(__file__))))
 from src.lightning import Linear, MLP, CNN, ResNet18, CNN3D, ResNet18_3D, ResNet18Video3D, RiskModel
 from src.dataset import PathMnist, NLST
+from src.gpu_utils import print_gpu_info, configure_ddp_strategy
 from lightning.pytorch.cli import LightningArgumentParser
 import lightning.pytorch as pl
 
@@ -80,8 +81,24 @@ def parse_args() -> argparse.Namespace:
 
 
 def main(args: argparse.Namespace):
+    import os
+
+    # Set CUDA memory management to reduce fragmentation
+    os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+
     print(args)
     print("Loading data ..")
+
+    # Print GPU information and check NVLink
+    print_gpu_info()
+
+    # Configure DDP strategy based on NVLink availability
+    # Will use the devices specified in args.trainer.devices, or auto-detect
+    requested_devices = getattr(args.trainer, 'devices', None)
+    if requested_devices == 'auto' or requested_devices is None:
+        requested_devices = None  # Auto-detect
+
+    strategy, num_devices = configure_ddp_strategy(devices=requested_devices)
 
     print("Preparing lighning data module (encapsulates dataset init and data loaders)")
     """
@@ -102,10 +119,15 @@ def main(args: argparse.Namespace):
     logger = pl.loggers.WandbLogger(entity="curtis-chambers-university-of-california-berkeley",project=args.project_name, offline=False)
 
     args.trainer.accelerator = 'auto'
+    args.trainer.devices = num_devices
+    args.trainer.strategy = strategy
     args.trainer.logger = logger
-    args.trainer.accumulate_grad_batches = 8  # Sync every 8 batches instead of every batch
+    # REMOVED: hardcoded accumulate_grad_batches - now configurable per training script
+    # The old hardcoded value of 8 was causing NaN issues with batch_size=2
+    if not hasattr(args.trainer, 'accumulate_grad_batches') or args.trainer.accumulate_grad_batches is None:
+        args.trainer.accumulate_grad_batches = 1  # Default to no accumulation
     args.trainer.precision = "bf16-mixed" ## This mixed precision training is highly recommended
-    
+
     args.trainer.callbacks = [
         pl.callbacks.ModelCheckpoint(
             monitor=args.monitor_key,

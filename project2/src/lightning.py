@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import torchmetrics
 import torchvision
 from src.cindex import concordance_index
+from src.profiling import get_global_profiler
 
 class Classifer(pl.LightningModule):
     """
@@ -111,19 +112,48 @@ class Classifer(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         """
         Single training step - called for each batch during training.
-        
+
         Args:
             batch: Batch of training data
             batch_idx: Index of current batch
-            
+
         Returns:
             torch.Tensor: Loss value for this batch
         """
+        # Get or create profiler (needed for DDP where each rank is separate process)
+        profiler = get_global_profiler()
+
+        # Debug output on first batch
+        if batch_idx == 0:
+            print(f"[DEBUG batch_idx=0] profiler from get_global_profiler: {profiler}")
+            print(f"[DEBUG batch_idx=0] hasattr enable_profiling: {hasattr(self, 'enable_profiling')}")
+            print(f"[DEBUG batch_idx=0] enable_profiling value: {getattr(self, 'enable_profiling', 'NOT_SET')}")
+
+        if profiler is None and hasattr(self, 'enable_profiling') and self.enable_profiling:
+            # Create profiler in this DDP rank
+            from src.profiling import BottleneckProfiler, set_global_profiler
+            profiler = BottleneckProfiler(enabled=True, log_interval=getattr(self, 'profile_log_interval', 10))
+            set_global_profiler(profiler)
+            print(f"[INFO] Profiler created in training_step (batch_idx={batch_idx})")
+
         # Extract inputs and labels from batch
         x, y = self.get_xy(batch)
 
+        # Profile CPU->GPU transfer
+        if profiler and not x.is_cuda:
+            with profiler.profile_section('cpu_to_gpu'):
+                x = x.cuda()
+                y = y.cuda()
+        else:
+            x = x.cuda() if not x.is_cuda else x
+            y = y.cuda() if not y.is_cuda else y
+
         # Forward pass: get model predictions
-        y_hat = self.forward(x)
+        if profiler:
+            with profiler.profile_section('gpu_forward'):
+                y_hat = self.forward(x)
+        else:
+            y_hat = self.forward(x)
 
         # Compute loss using cross-entropy
         loss = self.loss(y_hat, y)
@@ -131,14 +161,27 @@ class Classifer(pl.LightningModule):
         # Log metrics to progress bar and logger
         # on_step=True: log every step, on_epoch=False: don't aggregate over epoch
         # No sync_dist on training steps to avoid distributed training hangs
-        self.log('train_acc', self.accuracy(y_hat, y), prog_bar=True, on_step=True, on_epoch=False)
-        self.log('train_loss', loss, prog_bar=True, on_step=True, on_epoch=False)
+        if profiler:
+            with profiler.profile_section('metric_computation'):
+                self.log('train_acc', self.accuracy(y_hat, y), prog_bar=True, on_step=True, on_epoch=False)
+                self.log('train_loss', loss, prog_bar=True, on_step=True, on_epoch=False)
+        else:
+            self.log('train_acc', self.accuracy(y_hat, y), prog_bar=True, on_step=True, on_epoch=False)
+            self.log('train_loss', loss, prog_bar=True, on_step=True, on_epoch=False)
 
         # Store predictions and labels for epoch-end AUC computation
         self.training_outputs.append({
             "y_hat": y_hat,
             "y": y
         })
+
+        # Call profiler step
+        if profiler:
+            profiler.step()
+            # Log profiling metrics to wandb
+            if batch_idx % profiler.log_interval == 0:
+                self.log_dict(profiler.get_summary_dict(), on_step=True, on_epoch=False)
+
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -208,7 +251,7 @@ class Classifer(pl.LightningModule):
         # Concatenate all predictions and labels from the epoch
         y_hat = torch.cat([o["y_hat"] for o in self.training_outputs])
         y = torch.cat([o["y"] for o in self.training_outputs])
-        
+
         # Convert logits to probabilities for AUC computation
         if self.num_classes == 2:
             # Binary classification: use probability of configured positive class
@@ -216,12 +259,17 @@ class Classifer(pl.LightningModule):
         else:
             # Multi-class: use full probability distribution
             probs = F.softmax(y_hat, dim=-1)
-            
+
         # Log AUC metric (synchronized across GPUs)
         self._log_epoch_auc("train", probs, y)
-        
+
         # Clear stored outputs to free memory
         self.training_outputs = []
+
+        # Print profiling summary at epoch end
+        profiler = get_global_profiler()
+        if profiler:
+            profiler.epoch_end()
 
     def on_validation_epoch_end(self):
         """
@@ -943,9 +991,15 @@ class ResNet18_3D(Classifer):
         if attention_map.shape != mask.shape:
             mask = F.interpolate(mask, size=attention_map.shape[2:], mode='trilinear', align_corners=False)
 
-        # Normalize both to probability distributions
-        attention_map_norm = attention_map / (attention_map.sum(dim=(2, 3, 4), keepdim=True) + 1e-6)
-        mask_norm = mask / (mask.sum(dim=(2, 3, 4), keepdim=True) + 1e-6)
+        # Normalize both to probability distributions with stronger epsilon for numerical stability
+        eps = 1e-7
+        attention_map_norm = attention_map / (attention_map.sum(dim=(2, 3, 4), keepdim=True) + eps)
+        mask_norm = mask / (mask.sum(dim=(2, 3, 4), keepdim=True) + eps)
+
+        # Clamp normalized values to prevent log(0) = -inf
+        # This is CRITICAL: without clamping, log(0) produces -inf which becomes NaN
+        attention_map_norm = torch.clamp(attention_map_norm, min=eps)
+        mask_norm = torch.clamp(mask_norm, min=eps)
 
         # KL divergence loss: encourages attention to match ground truth localization
         # Only compute for samples that have localization annotations (non-zero masks)
@@ -956,11 +1010,15 @@ class ResNet18_3D(Classifer):
             return torch.tensor(0.0, device=attention_map.device)
 
         # KL(mask || attention): penalizes attention not covering annotated regions
+        # Now numerically stable: log is applied to clamped values (min=eps, never zero)
         kl_loss = F.kl_div(
-            attention_map_norm[has_annotation.squeeze()].log(),
+            torch.log(attention_map_norm[has_annotation.squeeze()]),
             mask_norm[has_annotation.squeeze()],
             reduction='batchmean'
         )
+
+        # Clamp the loss itself to prevent extreme values early in training
+        kl_loss = torch.clamp(kl_loss, max=10.0)
 
         return kl_loss
 
@@ -1210,9 +1268,15 @@ class ResNet18Video3D(Classifer):
         if attention_map.shape != mask.shape:
             mask = F.interpolate(mask, size=attention_map.shape[2:], mode='trilinear', align_corners=False)
 
-        # Normalize both to probability distributions
-        attention_map_norm = attention_map / (attention_map.sum(dim=(2, 3, 4), keepdim=True) + 1e-6)
-        mask_norm = mask / (mask.sum(dim=(2, 3, 4), keepdim=True) + 1e-6)
+        # Normalize both to probability distributions with stronger epsilon for numerical stability
+        eps = 1e-7
+        attention_map_norm = attention_map / (attention_map.sum(dim=(2, 3, 4), keepdim=True) + eps)
+        mask_norm = mask / (mask.sum(dim=(2, 3, 4), keepdim=True) + eps)
+
+        # Clamp normalized values to prevent log(0) = -inf
+        # This is CRITICAL: without clamping, log(0) produces -inf which becomes NaN
+        attention_map_norm = torch.clamp(attention_map_norm, min=eps)
+        mask_norm = torch.clamp(mask_norm, min=eps)
 
         # KL divergence loss: encourages attention to match ground truth localization
         # Only compute for samples that have localization annotations (non-zero masks)
@@ -1223,11 +1287,15 @@ class ResNet18Video3D(Classifer):
             return torch.tensor(0.0, device=attention_map.device)
 
         # KL(mask || attention): penalizes attention not covering annotated regions
+        # Now numerically stable: log is applied to clamped values (min=eps, never zero)
         kl_loss = F.kl_div(
-            attention_map_norm[has_annotation.squeeze()].log(),
+            torch.log(attention_map_norm[has_annotation.squeeze()]),
             mask_norm[has_annotation.squeeze()],
             reduction='batchmean'
         )
+
+        # Clamp the loss itself to prevent extreme values early in training
+        kl_loss = torch.clamp(kl_loss, max=10.0)
 
         return kl_loss
 
@@ -1503,9 +1571,15 @@ class CNN3D(Classifer):
         if attention_map.shape != mask.shape:
             mask = F.interpolate(mask, size=attention_map.shape[2:], mode='trilinear', align_corners=False)
 
-        # Normalize both to probability distributions
-        attention_map_norm = attention_map / (attention_map.sum(dim=(2, 3, 4), keepdim=True) + 1e-6)
-        mask_norm = mask / (mask.sum(dim=(2, 3, 4), keepdim=True) + 1e-6)
+        # Normalize both to probability distributions with stronger epsilon for numerical stability
+        eps = 1e-7
+        attention_map_norm = attention_map / (attention_map.sum(dim=(2, 3, 4), keepdim=True) + eps)
+        mask_norm = mask / (mask.sum(dim=(2, 3, 4), keepdim=True) + eps)
+
+        # Clamp normalized values to prevent log(0) = -inf
+        # This is CRITICAL: without clamping, log(0) produces -inf which becomes NaN
+        attention_map_norm = torch.clamp(attention_map_norm, min=eps)
+        mask_norm = torch.clamp(mask_norm, min=eps)
 
         # KL divergence loss: encourages attention to match ground truth localization
         # Only compute for samples that have localization annotations (non-zero masks)
@@ -1516,11 +1590,15 @@ class CNN3D(Classifer):
             return torch.tensor(0.0, device=attention_map.device)
 
         # KL(mask || attention): penalizes attention not covering annotated regions
+        # Now numerically stable: log is applied to clamped values (min=eps, never zero)
         kl_loss = F.kl_div(
-            attention_map_norm[has_annotation.squeeze()].log(),
+            torch.log(attention_map_norm[has_annotation.squeeze()]),
             mask_norm[has_annotation.squeeze()],
             reduction='batchmean'
         )
+
+        # Clamp the loss itself to prevent extreme values early in training
+        kl_loss = torch.clamp(kl_loss, max=10.0)
 
         return kl_loss
 

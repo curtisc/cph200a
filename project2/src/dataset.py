@@ -12,6 +12,8 @@ import tqdm
 import os
 import pickle
 
+from src.profiling import get_global_profiler, profile_data_loading
+
 mp.set_sharing_strategy('file_system')
 
 # Lightning DataModules + datasets used by the training scripts
@@ -55,14 +57,14 @@ class PathMnist(pl.LightningDataModule):
 
     def prepare_data(self):
         # Downloading is idempotent; medmnist caches under the provided root directory
-        medmnist.PathMNIST(root='../data', split='train', download=True, transform=self.train_transform)
-        medmnist.PathMNIST(root='../data', split='val', download=True, transform=self.test_transform)
-        medmnist.PathMNIST(root='../data', split='test', download=True, transform=self.test_transform)
+        medmnist.PathMNIST(root='../../../data/project2', split='train', download=True, transform=self.train_transform)
+        medmnist.PathMNIST(root='../../../data/project2', split='val', download=True, transform=self.test_transform)
+        medmnist.PathMNIST(root='../../../data/project2', split='test', download=True, transform=self.test_transform)
 
     def setup(self, stage=None):
-        self.train = medmnist.PathMNIST(root='../data', split='train', download=True, transform=self.train_transform)
-        self.val = medmnist.PathMNIST(root='../data', split='val', download=True, transform=self.test_transform)
-        self.test = medmnist.PathMNIST(root='../data', split='test', download=True, transform=self.test_transform)
+        self.train = medmnist.PathMNIST(root='../../../data/project2', split='train', download=True, transform=self.train_transform)
+        self.val = medmnist.PathMNIST(root='../../../data/project2', split='val', download=True, transform=self.test_transform)
+        self.test = medmnist.PathMNIST(root='../../../data/project2', split='test', download=True, transform=self.test_transform)
 
     def train_dataloader(self):
         # Pin-memory + persistent workers keep the GPU input queue full when num_workers > 0
@@ -115,10 +117,10 @@ class NLST(pl.LightningDataModule):
             use_data_augmentation=False,
             batch_size=1,
             num_workers=1,
-            nlst_metadata_path="../data/nlst-metadata/full_nlst_google.json",
-            valid_exam_path="../data/nlst-metadata/valid_exams.p",
-            nlst_dir="../data/compressed",
-            lungrads_path="../data/nlst-metadata/nlst_acc2lungrads.p",
+            nlst_metadata_path="../../../data/project2/nlst-metadata/full_nlst_google.json",
+            valid_exam_path="../../../data/project2/nlst-metadata/valid_exams.p",
+            nlst_dir="../../../data/project2/compressed",
+            lungrads_path="../../../data/project2/nlst-metadata/nlst_acc2lungrads.p",
             num_images=200,
             max_followup=6,
             img_size = [256, 256],
@@ -361,51 +363,58 @@ class NLST_Dataset(torch.utils.data.Dataset):
         return len(self.dataset)
     
     def __getitem__(self, idx):
-        sample_path = self.dataset[idx]['path']
-        # Preprocessed exams are stored as joblib pickles with tensors + metadata
-        sample = joblib.load(sample_path+".z")
-        orig_pixel_spacing = torch.diag(torch.tensor(sample['pixel_spacing'] + [1]))
-        num_slices = sample['x'].size()[0]
+        profiler = get_global_profiler()
 
-        right_side_cancer = sample['cancer_laterality'][0] == 1 and sample['cancer_laterality'][1] == 0
-        left_side_cancer = sample['cancer_laterality'][1] == 1 and sample['cancer_laterality'][0] == 0  # handy flags for coarse laterality tasks
+        with profile_data_loading(profiler) as ctx:
+            sample_path = self.dataset[idx]['path']
 
-        # TODO: You can modify the data loading of the bounding boxes to suit your localization method.
-        # Hint: You may want to use the "cancer_laterality" field to localize the cancer coarsely.
+            # Preprocessed exams are stored as joblib pickles with tensors + metadata
+            with ctx.disk_io():
+                sample = joblib.load(sample_path+".z")
 
-        if not sample['has_localization']:
-            sample['bounding_boxes'] = None
+            orig_pixel_spacing = torch.diag(torch.tensor(sample['pixel_spacing'] + [1]))
+            num_slices = sample['x'].size()[0]
 
-        # Convert coarse bounding boxes into a dense mask aligned with CACHE_IMG_SIZE
-        mask = self.get_scaled_annotation_mask(sample['bounding_boxes'], CACHE_IMG_SIZE + [num_slices])
+            right_side_cancer = sample['cancer_laterality'][0] == 1 and sample['cancer_laterality'][1] == 0
+            left_side_cancer = sample['cancer_laterality'][1] == 1 and sample['cancer_laterality'][0] == 0  # handy flags for coarse laterality tasks
 
-        # TorchIO expects a Subject holding the image + mask so spatial ops stay aligned
-        subject = tio.Subject( {
-            'x': tio.ScalarImage(tensor=sample['x'].unsqueeze(0).to(torch.float), affine=orig_pixel_spacing),
-            'mask': tio.LabelMap(tensor=mask.to(torch.float), affine=orig_pixel_spacing)
-        })
+            # TODO: You can modify the data loading of the bounding boxes to suit your localization method.
+            # Hint: You may want to use the "cancer_laterality" field to localize the cancer coarsely.
 
-        '''
-            TorchIO will consistently apply the data augmentations to the image and mask, so that they are aligned. Note, the 'bounding_boxes' item will be wrong after after random transforms (e.g. rotations) in this implementation. 
-        '''
-        try:
-            subject = self.transform(subject)
-        except:
-            raise Exception("Error with subject {}".format(sample_path))
+            if not sample['has_localization']:
+                sample['bounding_boxes'] = None
 
-        sample['x'], sample['mask'] = subject['x']['data'].to(torch.float), subject['mask']['data'].to(torch.float)
-        # Normalize volume to have 0 pixel mean and unit variance
-        sample['x'] = self.normalize(sample['x'])
+            # Convert coarse bounding boxes into a dense mask aligned with CACHE_IMG_SIZE
+            mask = self.get_scaled_annotation_mask(sample['bounding_boxes'], CACHE_IMG_SIZE + [num_slices])
 
-        # Remove potentially none items for batch collation
-        del sample['bounding_boxes']
+            # TorchIO expects a Subject holding the image + mask so spatial ops stay aligned
+            subject = tio.Subject( {
+                'x': tio.ScalarImage(tensor=sample['x'].unsqueeze(0).to(torch.float), affine=orig_pixel_spacing),
+                'mask': tio.LabelMap(tensor=mask.to(torch.float), affine=orig_pixel_spacing)
+            })
 
-        # Add metadata from dataset, converting to consistent float32 dtype for pin_memory compatibility
-        metadata = self.dataset[idx]
-        sample['y'] = metadata['y']
-        sample['y_seq'] = torch.tensor(metadata['y_seq'], dtype=torch.float32)
-        sample['y_mask'] = torch.tensor(metadata['y_mask'], dtype=torch.float32)
-        sample['time_at_event'] = metadata['time_at_event']
+            '''
+                TorchIO will consistently apply the data augmentations to the image and mask, so that they are aligned. Note, the 'bounding_boxes' item will be wrong after after random transforms (e.g. rotations) in this implementation.
+            '''
+            with ctx.transform():
+                try:
+                    subject = self.transform(subject)
+                except:
+                    raise Exception("Error with subject {}".format(sample_path))
+
+            sample['x'], sample['mask'] = subject['x']['data'].to(torch.float), subject['mask']['data'].to(torch.float)
+            # Normalize volume to have 0 pixel mean and unit variance
+            sample['x'] = self.normalize(sample['x'])
+
+            # Remove potentially none items for batch collation
+            del sample['bounding_boxes']
+
+            # Add metadata from dataset, converting to consistent float32 dtype for pin_memory compatibility
+            metadata = self.dataset[idx]
+            sample['y'] = metadata['y']
+            sample['y_seq'] = torch.tensor(metadata['y_seq'], dtype=torch.float32)
+            sample['y_mask'] = torch.tensor(metadata['y_mask'], dtype=torch.float32)
+            sample['time_at_event'] = metadata['time_at_event']
 
         return sample
 

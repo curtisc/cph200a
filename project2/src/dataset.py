@@ -415,6 +415,8 @@ class NLST_Dataset(torch.utils.data.Dataset):
             sample['y_seq'] = torch.tensor(metadata['y_seq'], dtype=torch.float32)
             sample['y_mask'] = torch.tensor(metadata['y_mask'], dtype=torch.float32)
             sample['time_at_event'] = metadata['time_at_event']
+            sample['lung_rads'] = metadata['lung_rads']  # For clinical analysis
+            sample['pid'] = metadata['pid']  # Patient ID for subgroup analysis
 
         return sample
 

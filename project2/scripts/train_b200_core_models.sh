@@ -20,15 +20,23 @@ NUM_WORKERS=24
 MAX_EPOCHS=100
 GRADIENT_CLIP=1.0
 
-# Ultra-high resolution for B200 (180GB VRAM)
-IMG_SIZE="[512, 512]"
-NUM_SLICES=256
+# Native resolution for B200 (raw data is 256×256)
+# Leverage extra VRAM for more slices and larger batches
+IMG_SIZE="[256, 256]"
+NUM_SLICES=250
+
+# Data paths (adjust DATA_ROOT as needed for your system)
+DATA_ROOT=~/cphdata
+NLST_DIR="${DATA_ROOT}/compressed"
+NLST_METADATA="${DATA_ROOT}/nlst-metadata/full_nlst_google.json"
+VALID_EXAM_PATH="${DATA_ROOT}/nlst-metadata/valid_exams.p"
+LUNGRADS_PATH="${DATA_ROOT}/nlst-metadata/nlst_acc2lungrads.p"
 
 echo "============================================================================="
 echo "B200 CORE MODEL TRAINING"
 echo "============================================================================="
 echo "Training 5 core models for project report comparison"
-echo "Resolution: 512×512×256 slices"
+echo "Resolution: 256×256×250 slices (native resolution, more depth)"
 echo ""
 
 # Select which model to train
@@ -49,10 +57,14 @@ case $MODEL in
           --cnn3d.use_bn true \
           --cnn3d.init_lr 3e-4 \
           --cnn3d.use_attention_pooling true \
+          --nlst.nlst_dir "${NLST_DIR}" \
+          --nlst.nlst_metadata_path "${NLST_METADATA}" \
+          --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+          --nlst.lungrads_path "${LUNGRADS_PATH}" \
           --nlst.data_percent 100 \
           --nlst.use_data_augmentation true \
           --nlst.class_balance true \
-          --nlst.batch_size 6 \
+          --nlst.batch_size 16 \
           --nlst.num_workers ${NUM_WORKERS} \
           --nlst.img_size "${IMG_SIZE}" \
           --nlst.num_images ${NUM_SLICES} \
@@ -79,10 +91,14 @@ case $MODEL in
           --resnet18_3d.use_attention_pooling true \
           --resnet18_3d.use_localization_reg true \
           --resnet18_3d.localization_reg_weight 0.1 \
+          --nlst.nlst_dir "${NLST_DIR}" \
+          --nlst.nlst_metadata_path "${NLST_METADATA}" \
+          --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+          --nlst.lungrads_path "${LUNGRADS_PATH}" \
           --nlst.data_percent 100 \
           --nlst.use_data_augmentation true \
           --nlst.class_balance true \
-          --nlst.batch_size 8 \
+          --nlst.batch_size 12 \
           --nlst.num_workers ${NUM_WORKERS} \
           --nlst.img_size "${IMG_SIZE}" \
           --nlst.num_images ${NUM_SLICES} \
@@ -109,10 +125,14 @@ case $MODEL in
           --resnet18_3d.use_attention_pooling true \
           --resnet18_3d.use_localization_reg true \
           --resnet18_3d.localization_reg_weight 0.1 \
+          --nlst.nlst_dir "${NLST_DIR}" \
+          --nlst.nlst_metadata_path "${NLST_METADATA}" \
+          --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+          --nlst.lungrads_path "${LUNGRADS_PATH}" \
           --nlst.data_percent 100 \
           --nlst.use_data_augmentation true \
           --nlst.class_balance true \
-          --nlst.batch_size 8 \
+          --nlst.batch_size 12 \
           --nlst.num_workers ${NUM_WORKERS} \
           --nlst.img_size "${IMG_SIZE}" \
           --nlst.num_images ${NUM_SLICES} \
@@ -139,10 +159,14 @@ case $MODEL in
           --resnet18_video3d.use_attention_pooling true \
           --resnet18_video3d.use_localization_reg true \
           --resnet18_video3d.localization_reg_weight 0.1 \
+          --nlst.nlst_dir "${NLST_DIR}" \
+          --nlst.nlst_metadata_path "${NLST_METADATA}" \
+          --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+          --nlst.lungrads_path "${LUNGRADS_PATH}" \
           --nlst.data_percent 100 \
           --nlst.use_data_augmentation true \
           --nlst.class_balance true \
-          --nlst.batch_size 6 \
+          --nlst.batch_size 10 \
           --nlst.num_workers ${NUM_WORKERS} \
           --nlst.img_size "${IMG_SIZE}" \
           --nlst.num_images ${NUM_SLICES} \
@@ -169,10 +193,14 @@ case $MODEL in
           --resnet18_video3d.use_attention_pooling true \
           --resnet18_video3d.use_localization_reg true \
           --resnet18_video3d.localization_reg_weight 0.1 \
+          --nlst.nlst_dir "${NLST_DIR}" \
+          --nlst.nlst_metadata_path "${NLST_METADATA}" \
+          --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+          --nlst.lungrads_path "${LUNGRADS_PATH}" \
           --nlst.data_percent 100 \
           --nlst.use_data_augmentation true \
           --nlst.class_balance true \
-          --nlst.batch_size 6 \
+          --nlst.batch_size 10 \
           --nlst.num_workers ${NUM_WORKERS} \
           --nlst.img_size "${IMG_SIZE}" \
           --nlst.num_images ${NUM_SLICES} \

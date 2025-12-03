@@ -22,10 +22,17 @@ PRECISION="bf16-mixed"
 NUM_WORKERS=24
 GRADIENT_CLIP=1.0
 
-# Ultra-high resolution for B200
-IMG_SIZE="[512, 512]"
-NUM_SLICES=256
-BATCH_SIZE=6
+# Native resolution for B200 (raw data is 256×256)
+IMG_SIZE="[256, 256]"
+NUM_SLICES=250
+BATCH_SIZE=10
+
+# Data paths (adjust DATA_ROOT as needed for your system)
+DATA_ROOT=~/cphdata
+NLST_DIR="${DATA_ROOT}/compressed"
+NLST_METADATA="${DATA_ROOT}/nlst-metadata/full_nlst_google.json"
+VALID_EXAM_PATH="${DATA_ROOT}/nlst-metadata/valid_exams.p"
+LUNGRADS_PATH="${DATA_ROOT}/nlst-metadata/nlst_acc2lungrads.p"
 
 echo "============================================================================="
 echo "B200 PRETRAINING ABLATION EXPERIMENTS"
@@ -51,6 +58,10 @@ case $EXPERIMENT in
           --resnet18_video3d.num_classes 2 \
           --resnet18_video3d.init_lr 1e-3 \
           --resnet18_video3d.use_attention_pooling true \
+          --nlst.nlst_dir "${NLST_DIR}" \
+          --nlst.nlst_metadata_path "${NLST_METADATA}" \
+          --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+          --nlst.lungrads_path "${LUNGRADS_PATH}" \
           --nlst.data_percent 100 \
           --nlst.use_data_augmentation true \
           --nlst.class_balance true \
@@ -80,6 +91,10 @@ case $EXPERIMENT in
           --resnet18_3d.num_classes 2 \
           --resnet18_3d.init_lr 1e-3 \
           --resnet18_3d.use_attention_pooling true \
+          --nlst.nlst_dir "${NLST_DIR}" \
+          --nlst.nlst_metadata_path "${NLST_METADATA}" \
+          --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+          --nlst.lungrads_path "${LUNGRADS_PATH}" \
           --nlst.data_percent 100 \
           --nlst.use_data_augmentation true \
           --nlst.class_balance true \
@@ -112,6 +127,10 @@ case $EXPERIMENT in
           --resnet18_video3d.use_attention_pooling true \
           --resnet18_video3d.use_localization_reg true \
           --resnet18_video3d.localization_reg_weight 0.1 \
+          --nlst.nlst_dir "${NLST_DIR}" \
+          --nlst.nlst_metadata_path "${NLST_METADATA}" \
+          --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+          --nlst.lungrads_path "${LUNGRADS_PATH}" \
           --nlst.data_percent 100 \
           --nlst.use_data_augmentation true \
           --nlst.class_balance true \
@@ -144,6 +163,10 @@ case $EXPERIMENT in
           --resnet18_video3d.use_attention_pooling true \
           --resnet18_video3d.use_localization_reg true \
           --resnet18_video3d.localization_reg_weight 0.1 \
+          --nlst.nlst_dir "${NLST_DIR}" \
+          --nlst.nlst_metadata_path "${NLST_METADATA}" \
+          --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+          --nlst.lungrads_path "${LUNGRADS_PATH}" \
           --nlst.data_percent 100 \
           --nlst.use_data_augmentation true \
           --nlst.class_balance true \
@@ -176,6 +199,10 @@ case $EXPERIMENT in
           --resnet18_video3d.use_attention_pooling true \
           --resnet18_video3d.use_localization_reg true \
           --resnet18_video3d.localization_reg_weight 0.1 \
+          --nlst.nlst_dir "${NLST_DIR}" \
+          --nlst.nlst_metadata_path "${NLST_METADATA}" \
+          --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+          --nlst.lungrads_path "${LUNGRADS_PATH}" \
           --nlst.data_percent 100 \
           --nlst.use_data_augmentation true \
           --nlst.class_balance true \
@@ -207,6 +234,10 @@ case $EXPERIMENT in
           --resnet18_video3d.use_attention_pooling true \
           --resnet18_video3d.use_localization_reg true \
           --resnet18_video3d.localization_reg_weight 0.1 \
+          --nlst.nlst_dir "${NLST_DIR}" \
+          --nlst.nlst_metadata_path "${NLST_METADATA}" \
+          --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+          --nlst.lungrads_path "${LUNGRADS_PATH}" \
           --nlst.data_percent 100 \
           --nlst.use_data_augmentation true \
           --nlst.class_balance true \

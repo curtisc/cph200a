@@ -27,20 +27,28 @@ MAX_EPOCHS=100
 GRADIENT_CLIP=1.0
 
 # B200-optimized settings (180GB vs H100's 80GB = 2.25× more VRAM)
-# Ultra-high resolution configuration
-IMG_SIZE="[512, 512]"
-NUM_SLICES=256
+# NOTE: Raw data is cached at 256×256 - using higher resolution just upsamples
+# Instead, leverage extra VRAM for more slices and larger batches
+IMG_SIZE="[256, 256]"   # Native resolution (no upsampling)
+NUM_SLICES=250          # Slightly more than H100 ultra (224), conservative increase
 
-# Batch sizes per GPU (can be much larger on B200)
-BATCH_CNN3D=6      # CNN3D is memory efficient
-BATCH_RESNET3D=8   # ResNet-18 3D
-BATCH_VIDEO3D=6    # Video3D slightly larger
+# Batch sizes per GPU (much larger on B200 with native resolution)
+BATCH_CNN3D=16     # CNN3D is memory efficient
+BATCH_RESNET3D=12  # ResNet-18 3D
+BATCH_VIDEO3D=10   # Video3D slightly larger
+
+# Data paths (adjust DATA_ROOT as needed for your system)
+DATA_ROOT=~/cphdata
+NLST_DIR="${DATA_ROOT}/compressed"
+NLST_METADATA="${DATA_ROOT}/nlst-metadata/full_nlst_google.json"
+VALID_EXAM_PATH="${DATA_ROOT}/nlst-metadata/valid_exams.p"
+LUNGRADS_PATH="${DATA_ROOT}/nlst-metadata/nlst_acc2lungrads.p"
 
 echo "============================================================================="
 echo "B200 COMPREHENSIVE TRAINING SUITE"
 echo "============================================================================="
 echo "Hardware: 8× B200 GPUs (180GB each), 208 cores, 2900 GB RAM"
-echo "Resolution: 512×512×256 slices (ultra-high)"
+echo "Resolution: 256×256×250 slices (native resolution, more depth)"
 echo "Precision: ${PRECISION}"
 echo ""
 echo "This script will train all models needed for the project report:"
@@ -77,6 +85,10 @@ train_cnn3d() {
       --cnn3d.init_lr 3e-4 \
       --cnn3d.use_attention_pooling true \
       \
+      --nlst.nlst_dir "${NLST_DIR}" \
+      --nlst.nlst_metadata_path "${NLST_METADATA}" \
+      --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+      --nlst.lungrads_path "${LUNGRADS_PATH}" \
       --nlst.data_percent 100 \
       --nlst.use_data_augmentation true \
       --nlst.class_balance true \
@@ -122,6 +134,10 @@ train_resnet3d_pretrained() {
       --resnet18_3d.use_localization_reg true \
       --resnet18_3d.localization_reg_weight 0.1 \
       \
+      --nlst.nlst_dir "${NLST_DIR}" \
+      --nlst.nlst_metadata_path "${NLST_METADATA}" \
+      --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+      --nlst.lungrads_path "${LUNGRADS_PATH}" \
       --nlst.data_percent 100 \
       --nlst.use_data_augmentation true \
       --nlst.class_balance true \
@@ -167,6 +183,10 @@ train_resnet3d_scratch() {
       --resnet18_3d.use_localization_reg true \
       --resnet18_3d.localization_reg_weight 0.1 \
       \
+      --nlst.nlst_dir "${NLST_DIR}" \
+      --nlst.nlst_metadata_path "${NLST_METADATA}" \
+      --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+      --nlst.lungrads_path "${LUNGRADS_PATH}" \
       --nlst.data_percent 100 \
       --nlst.use_data_augmentation true \
       --nlst.class_balance true \
@@ -212,6 +232,10 @@ train_video3d_pretrained() {
       --resnet18_video3d.use_localization_reg true \
       --resnet18_video3d.localization_reg_weight 0.1 \
       \
+      --nlst.nlst_dir "${NLST_DIR}" \
+      --nlst.nlst_metadata_path "${NLST_METADATA}" \
+      --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+      --nlst.lungrads_path "${LUNGRADS_PATH}" \
       --nlst.data_percent 100 \
       --nlst.use_data_augmentation true \
       --nlst.class_balance true \
@@ -257,6 +281,10 @@ train_video3d_scratch() {
       --resnet18_video3d.use_localization_reg true \
       --resnet18_video3d.localization_reg_weight 0.1 \
       \
+      --nlst.nlst_dir "${NLST_DIR}" \
+      --nlst.nlst_metadata_path "${NLST_METADATA}" \
+      --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+      --nlst.lungrads_path "${LUNGRADS_PATH}" \
       --nlst.data_percent 100 \
       --nlst.use_data_augmentation true \
       --nlst.class_balance true \
@@ -304,6 +332,10 @@ train_video3d_frozen() {
       --resnet18_video3d.use_attention_pooling true \
       --resnet18_video3d.use_localization_reg false \
       \
+      --nlst.nlst_dir "${NLST_DIR}" \
+      --nlst.nlst_metadata_path "${NLST_METADATA}" \
+      --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+      --nlst.lungrads_path "${LUNGRADS_PATH}" \
       --nlst.data_percent 100 \
       --nlst.use_data_augmentation true \
       --nlst.class_balance true \
@@ -348,6 +380,10 @@ train_resnet3d_frozen() {
       --resnet18_3d.use_attention_pooling true \
       --resnet18_3d.use_localization_reg false \
       \
+      --nlst.nlst_dir "${NLST_DIR}" \
+      --nlst.nlst_metadata_path "${NLST_METADATA}" \
+      --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+      --nlst.lungrads_path "${LUNGRADS_PATH}" \
       --nlst.data_percent 100 \
       --nlst.use_data_augmentation true \
       --nlst.class_balance true \
@@ -396,6 +432,10 @@ train_video3d_gradual_unfreeze() {
       --resnet18_video3d.use_attention_pooling true \
       --resnet18_video3d.use_localization_reg false \
       \
+      --nlst.nlst_dir "${NLST_DIR}" \
+      --nlst.nlst_metadata_path "${NLST_METADATA}" \
+      --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+      --nlst.lungrads_path "${LUNGRADS_PATH}" \
       --nlst.data_percent 100 \
       --nlst.use_data_augmentation true \
       --nlst.class_balance true \
@@ -435,6 +475,10 @@ train_video3d_gradual_unfreeze() {
           --resnet18_video3d.use_localization_reg true \
           --resnet18_video3d.localization_reg_weight 0.1 \
           \
+          --nlst.nlst_dir "${NLST_DIR}" \
+          --nlst.nlst_metadata_path "${NLST_METADATA}" \
+          --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+          --nlst.lungrads_path "${LUNGRADS_PATH}" \
           --nlst.data_percent 100 \
           --nlst.use_data_augmentation true \
           --nlst.class_balance true \
@@ -486,6 +530,10 @@ train_video3d_scratch_low_lr() {
       --resnet18_video3d.use_localization_reg true \
       --resnet18_video3d.localization_reg_weight 0.1 \
       \
+      --nlst.nlst_dir "${NLST_DIR}" \
+      --nlst.nlst_metadata_path "${NLST_METADATA}" \
+      --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+      --nlst.lungrads_path "${LUNGRADS_PATH}" \
       --nlst.data_percent 100 \
       --nlst.use_data_augmentation true \
       --nlst.class_balance true \
@@ -533,6 +581,10 @@ train_video3d_scratch_long() {
       --resnet18_video3d.use_localization_reg true \
       --resnet18_video3d.localization_reg_weight 0.1 \
       \
+      --nlst.nlst_dir "${NLST_DIR}" \
+      --nlst.nlst_metadata_path "${NLST_METADATA}" \
+      --nlst.valid_exam_path "${VALID_EXAM_PATH}" \
+      --nlst.lungrads_path "${LUNGRADS_PATH}" \
       --nlst.data_percent 100 \
       --nlst.use_data_augmentation true \
       --nlst.class_balance true \

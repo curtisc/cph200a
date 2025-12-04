@@ -19,6 +19,15 @@
 
 set -e  # Exit on error
 
+# NCCL Configuration for B200 with NVLink
+# Optimize NCCL for NVLink-based multi-GPU training
+export NCCL_IB_DISABLE=1              # Disable InfiniBand (using NVLink instead)
+export NCCL_NET_GDR_LEVEL=0           # Disable GPU Direct RDMA (NVLink handles P2P)
+export NCCL_SOCKET_NTHREADS=4         # More socket threads for large scale
+export NCCL_NSOCKS_PERTHREAD=4        # More sockets per thread
+export NCCL_TIMEOUT=1800              # 30min timeout for large models
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
 # Configuration
 DEVICES=8
 PRECISION="bf16-mixed"
@@ -30,12 +39,13 @@ GRADIENT_CLIP=1.0
 # NOTE: Raw data is cached at 256×256 - using higher resolution just upsamples
 # Instead, leverage extra VRAM for more slices and larger batches
 IMG_SIZE="[256, 256]"   # Native resolution (no upsampling)
-NUM_SLICES=250          # Slightly more than H100 ultra (224), conservative increase
+NUM_SLICES=200          # Conservative for 256x256 resolution
 
-# Batch sizes per GPU (much larger on B200 with native resolution)
-BATCH_CNN3D=16     # CNN3D is memory efficient
-BATCH_RESNET3D=12  # ResNet-18 3D
-BATCH_VIDEO3D=10   # Video3D slightly larger
+# Batch sizes per GPU (conservative to avoid OOM with 256x256x200 volumes)
+# These are PER GPU, so effective batch = batch_size * 8 GPUs
+BATCH_CNN3D=4      # CNN3D: 4 per GPU = 32 total
+BATCH_RESNET3D=3   # ResNet-18 3D: 3 per GPU = 24 total
+BATCH_VIDEO3D=2    # Video3D: 2 per GPU = 16 total
 
 # Data paths (adjust DATA_ROOT as needed for your system)
 DATA_ROOT=~/cphdata
@@ -48,7 +58,10 @@ echo "==========================================================================
 echo "B200 COMPREHENSIVE TRAINING SUITE"
 echo "============================================================================="
 echo "Hardware: 8× B200 GPUs (180GB each), 208 cores, 2900 GB RAM"
-echo "Resolution: 256×256×250 slices (native resolution, more depth)"
+echo "NVLink: Enabled (144 active links @ 50GB/s each)"
+echo "NCCL: Optimized for NVLink (IB_DISABLE=1, GDR_LEVEL=0, TIMEOUT=1800s)"
+echo "Resolution: 256×256×200 slices (native resolution)"
+echo "Batch sizes: CNN3D=32, ResNet3D=24, Video3D=16 (across 8 GPUs)"
 echo "Precision: ${PRECISION}"
 echo ""
 echo "This script will train all models needed for the project report:"

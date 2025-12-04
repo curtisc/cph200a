@@ -86,11 +86,17 @@ def main(args: argparse.Namespace):
     # Set CUDA memory management to reduce fragmentation
     os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 
-    print(args)
-    print("Loading data ..")
+    # Check if we're the main process (rank 0) or a DDP worker
+    # In DDP, each worker process re-runs this function
+    local_rank = int(os.environ.get('LOCAL_RANK', 0))
+    is_main_process = local_rank == 0
 
-    # Print GPU information and check NVLink
-    print_gpu_info()
+    if is_main_process:
+        print(args)
+        print("Loading data ..")
+
+        # Print GPU information and check NVLink (only from main process)
+        print_gpu_info()
 
     # Configure DDP strategy based on NVLink availability
     # Will use the devices specified in args.trainer.devices, or auto-detect

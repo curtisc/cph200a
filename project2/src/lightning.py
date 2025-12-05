@@ -1747,6 +1747,69 @@ class CNN3D(Classifer):
         # Clear stored outputs
         self.validation_outputs = []
 
+class AttentionPooling(nn.Module):
+    def __init__(self, hidden_dim=2048):
+        super().__init__()
+        self.fc = nn.Linear(hidden_dim, 1)
+        self.softmax = nn.Softmax(dim=-1)
+        
+    def forward(self, x):
+        B, C, D, W, H = x.shape
+        x = x.view(x.shape[0], x.shape[1], -1)
+        attention_weights = self.softmax(self.fc(x.transpose(1, 2)).transpose(1, 2))
+        weighted = torch.sum(attention_weights * x, dim=-1)
+        return weighted, attention_weights.reshape(B, 1, D, W, H)
+    
+class RiskLoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        
+    def forward(self, outputs, batch):
+        attention_map = outputs['attention_weights']
+        
+        mask = batch['mask']
+        
+        # KL divergence loss: encourages attention to match ground truth localization
+        # Only compute for samples that have localization annotations (non-zero masks)
+        has_annotation = mask.sum(dim=(2, 3, 4)) > 0  # (B, 1)
+
+        mask_interpolated = F.interpolate(mask, size=attention_map.shape[-3:], mode='nearest')
+        
+        # Normalize both to probability distributions
+        mask_norm = mask_interpolated / (mask_interpolated.sum(dim=(2, 3, 4), keepdim=True) + 1e-6)
+
+        
+        if has_annotation.sum() == 0:
+            # No samples with annotations in this batch
+            localization_loss = torch.tensor(0.0, device=attention_map.device)
+        else:
+            localization_loss = 0.1 * F.kl_div(attention_map[has_annotation.squeeze()].log(), mask_norm[has_annotation.squeeze()], reduction='batchmean')
+            if torch.isnan(localization_loss):
+                localization_loss = torch.tensor(0.0, device=attention_map.device)
+                print("Localization loss is nan: ", mask.sum(dim=(2, 3, 4), keepdim=True) + 1e-6)
+        
+        risk_loss = F.binary_cross_entropy_with_logits(outputs['y'].float(), batch['y_seq'], weight=batch['y_mask'])
+        return {
+            "localization_loss": localization_loss,
+            "risk_loss": risk_loss
+        }
+
+class RiskHead(nn.Module):
+    def __init__(self, input_dim=2048, followup_dim=6):
+        super().__init__()
+        self.hazards = nn.Linear(input_dim, followup_dim)
+        self.baseline = nn.Linear(input_dim, 1)
+        self.act = nn.ReLU()
+
+
+    def forward(self, x):
+        hazards = self.hazards(x)
+        baseline = self.baseline(x)
+        logits = torch.cumsum(self.act(hazards), dim=1) + baseline
+        
+        return logits
+
 class RiskModel(Classifer):
     def __init__(self, input_num_chan=1, num_classes=2, init_lr = 1e-3, max_followup=6, **kwargs):
         super().__init__(num_classes=num_classes, init_lr=init_lr)
@@ -1757,91 +1820,54 @@ class RiskModel(Classifer):
         ## Maximum number of followups to predict (set to 6 for full risk prediction task)
         self.max_followup = max_followup
 
-        # TODO: Initalize components of your model here
-        raise NotImplementedError("Not implemented yet")
-
+        weights = torchvision.models.video.R3D_18_Weights.KINETICS400_V1  
+        self.resnet = torchvision.models.video.r3d_18(weights=weights)
+        features_in = self.resnet.fc.in_features
+        self.attention_pooling = AttentionPooling(hidden_dim=features_in)
+        self.resnet.avgpool = nn.Identity()
+        self.resnet.fc = nn.Identity()
+        
+        self.risk_head = RiskHead(input_dim=features_in, followup_dim=self.max_followup)
+        self.loss = RiskLoss()
 
 
     def forward(self, x):
-        raise NotImplementedError("Not implemented yet")
-
-    def get_xy(self, batch):
-        """
-            x: (B, C, D, W, H) -  Tensor of CT volume
-            y_seq: (B, T) - Tensor of cancer outcomes. a vector of [0,0,1,1,1, 1] means the patient got between years 2-3, so
-            had cancer within 3 years, within 4, within 5, and within 6 years.
-            y_mask: (B, T) - Tensor of mask indicating future time points are observed and not censored. For example, if y_seq = [0,0,0,0,0,0], then y_mask = [1,1,0,0,0,0], we only know that the patient did not have cancer within 2 years, but we don't know if they had cancer within 3 years or not.
-            mask: (B, D, W, H) - Tensor of mask indicating which voxels are inside an annotated cancer region (1) or not (0).
-                TODO: You can add more inputs here if you want to use them from the NLST dataloader.
-                Hint: You may want to change the mask definition to suit your localization method
-
-        """
-        return batch['x'], batch['y_seq'][:, :self.max_followup], batch['y_mask'][:, :self.max_followup], batch['mask']
+        x = torch.cat([x, x, x], dim=1)
+        x = self.resnet.stem(x)
+        x = self.resnet.layer1(x)
+        x = self.resnet.layer2(x)
+        x = self.resnet.layer3(x)
+        x = self.resnet.layer4(x)
+        x, attention_weights = self.attention_pooling(x)
+        logits = self.risk_head(x)
+        return {"y": logits, "attention_weights": attention_weights}
 
     def step(self, batch, batch_idx, stage, outputs):
         x, y_seq, y_mask, region_annotation_mask = self.get_xy(batch)
 
-        # TODO: Get risk scores from your model
-        y_hat = None ## (B, T) shape tensor of risk scores.
-        # TODO: Compute your loss (with or without localization)
-        loss = None
+        # Get risk scores from your model
+        y_hat = self.forward(x) ## (B, T) shape tensor of risk scores.
 
-        raise NotImplementedError("Not implemented yet")
-        
-        # TODO: Log any metrics you want to wandb
-        metric_value = -1
-        metric_name = "dummy_metric"
-        self.log('{}_{}'.format(stage, metric_name), metric_value, prog_bar=True, on_epoch=True, on_step=True, sync_dist=True)
+        # Compute your loss (with or without localization)
+        loss_dict = self.loss(y_hat, batch)
+        loss = loss_dict['localization_loss'] + loss_dict['risk_loss']
+        y_hat = y_hat['y'] if isinstance(y_hat, dict) else y_hat
 
-        # TODO: Store the predictions and labels for use at the end of the epoch for AUC and C-Index computation.
+        # Log any metrics you want to wandb
+        self.log('{}_{}'.format(stage, 'localization_loss'), loss_dict['localization_loss'], prog_bar=True, on_epoch=True, on_step=True, sync_dist=True)
+        self.log('{}_{}'.format(stage, 'risk_loss'), loss_dict['risk_loss'], prog_bar=True, on_epoch=True, on_step=True, sync_dist=True)
+        self.log('{}_{}'.format(stage, 'total_loss'), loss, prog_bar=True, on_epoch=True, on_step=True, sync_dist=True)
+
         outputs.append({
             "y_hat": y_hat, # Logits for all risk scores
             "y_mask": y_mask, # Tensor of when the patient was observed
             "y_seq": y_seq, # Tensor of when the patient had cancer
             "y": batch["y"], # If patient has cancer within 6 years
-            "time_at_event": batch["time_at_event"] # Censor time
+            "time_at_event": batch["time_at_event"], # Censor time
+            "pid": batch["pid"], # Patient ID
+            "exam_str": batch["exam_str"], # Exam string
+            "exam_int": batch["exam_int"], # Exam integer
+
         })
 
         return loss
-    def training_step(self, batch, batch_idx):
-        return self.step(batch, batch_idx, "train", self.training_outputs)
-
-    def validation_step(self, batch, batch_idx):
-        return self.step(batch, batch_idx, "val", self.validation_outputs)
-    def test_step(self, batch, batch_idx):
-        return self.step(batch, batch_idx, "test", self.test_outputs)
-
-    def on_epoch_end(self, stage, outputs):
-        y_hat = F.sigmoid(torch.cat([o["y_hat"] for o in outputs]))
-        y_seq = torch.cat([o["y_seq"] for o in outputs])
-        y_mask = torch.cat([o["y_mask"] for o in outputs])
-
-        for i in range(self.max_followup):
-            '''
-                Filter samples for either valid negative (observed followup) at time i
-                or known pos within range i (including if cancer at prev time and censoring before current time)
-            '''
-            valid_probs = y_hat[:, i][(y_mask[:, i] == 1) | (y_seq[:,i] == 1)]
-            valid_labels = y_seq[:, i][(y_mask[:, i] == 1)| (y_seq[:,i] == 1)]
-            self.log("{}_{}year_auc".format(stage, i+1), self.auc(valid_probs, valid_labels.view(-1)), sync_dist=True, prog_bar=True)
-
-        y = torch.cat([o["y"] for o in outputs])
-        time_at_event = torch.cat([o["time_at_event"] for o in outputs])
-
-        if y.sum() > 0 and self.max_followup == 6:
-            c_index = concordance_index(time_at_event.cpu().numpy(), y_hat.detach().cpu().numpy(), y.cpu().numpy(), NLST_CENSORING_DIST)
-        else:
-            c_index = 0
-        self.log("{}_c_index".format(stage), c_index, sync_dist=True, prog_bar=True)
-
-    def on_train_epoch_end(self):
-        self.on_epoch_end("train", self.training_outputs)
-        self.training_outputs = []
-
-    def on_validation_epoch_end(self):
-        self.on_epoch_end("val", self.validation_outputs)
-        self.validation_outputs = []
-
-    def on_test_epoch_end(self):
-        self.on_epoch_end("test", self.test_outputs)
-        self.test_outputs = []
